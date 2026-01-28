@@ -4,16 +4,16 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import { ProtectedRoute } from "./components/ProtectedRoute";
-import { PWALifecycle } from "./components/PWALifecycle";
-import Home from "./pages/Home";
-import Library from "./pages/Library";
-import Favorites from "./pages/Favorites";
-import Profile from "./pages/Profile";
-import StoryReader from "./pages/StoryReader";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PWALifecycle } from "@/components/PWALifecycle";
+import Home from "@/pages/Home";
+import Library from "@/pages/Library";
+import Favorites from "@/pages/Favorites";
+import Profile from "@/pages/Profile";
+import StoryReader from "@/pages/StoryReader";
+import Auth from "@/pages/Auth";
+import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
