@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Sparkles, Moon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useStories } from "@/hooks/useStories";
 
 const characters = [
@@ -41,28 +40,57 @@ const Home = () => {
   const [customScenario, setCustomScenario] = useState('');
 
   const generateStory = async () => {
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+    if (!apiKey) {
+      toast({
+        title: "Erro de configuração",
+        description: "A chave VITE_OPENAI_API_KEY não foi encontrada na Vercel.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-story', {
-        body: { 
-          ageRange: '5-6',
-          duration: 5,
-          character: selectedCharacter,
-          scenario: selectedScenario,
-          customCharacter: selectedCharacter === 'outro' ? customCharacter : undefined,
-          customScenario: selectedScenario === 'outro' ? customScenario : undefined,
-        }
+      const charName = selectedCharacter === 'outro' ? customCharacter : selectedCharacter;
+      const scenarioName = selectedScenario === 'outro' ? customScenario : selectedScenario;
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'Você é um contador de histórias infantis calmas para dormir em português. Retorne APENAS um JSON: {"title": "Título", "content": "Texto da história"}'
+            },
+            {
+              role: 'user',
+              content: `Crie uma história para crianças de 5 anos sobre ${charName} em ${scenarioName}. No máximo 5 parágrafos.`
+            },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.7,
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Falha na resposta da OpenAI');
+
+      const aiResult = await response.json();
+      const storyData = JSON.parse(aiResult.choices[0].message.content);
 
       const newStory = await addStory({
-        title: data.title,
-        content: data.content,
+        title: storyData.title,
+        content: storyData.content,
         duration: 5,
         ageRange: '5-6',
-        theme: selectedScenario === 'outro' ? customScenario : selectedScenario,
-        characterName: selectedCharacter === 'outro' ? customCharacter : selectedCharacter,
+        theme: scenarioName,
+        characterName: charName,
       });
 
       if (newStory) {
@@ -72,7 +100,7 @@ const Home = () => {
       console.error('Error generating story:', error);
       toast({
         title: "Erro ao gerar história",
-        description: error.message || "Tente novamente em alguns instantes.",
+        description: "Verifique sua chave da OpenAI e tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -105,11 +133,10 @@ const Home = () => {
                     key={char.id}
                     type="button"
                     onClick={() => setSelectedCharacter(char.id)}
-                    className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left ${
-                      selectedCharacter === char.id
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left ${selectedCharacter === char.id
                         ? 'border-primary bg-primary/10'
                         : 'border-border bg-card hover:border-primary/50'
-                    }`}
+                      }`}
                   >
                     <span className="text-2xl">{char.emoji}</span>
                     <span className="font-medium text-foreground">{char.label}</span>
@@ -134,11 +161,10 @@ const Home = () => {
                     key={scenario.id}
                     type="button"
                     onClick={() => setSelectedScenario(scenario.id)}
-                    className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left ${
-                      selectedScenario === scenario.id
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left ${selectedScenario === scenario.id
                         ? 'border-primary bg-primary/10'
                         : 'border-border bg-card hover:border-primary/50'
-                    }`}
+                      }`}
                   >
                     <span className="text-2xl">{scenario.emoji}</span>
                     <span className="font-medium text-foreground">{scenario.label}</span>
